@@ -1,20 +1,43 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ProductController;
-use App\Http\Controllers\KaryawanController;
 use App\Http\Controllers\AdminController;
-use App\Http\Controllers\KategoriController;
-use App\Http\Controllers\SubkategoriController;
 use App\Http\Controllers\ItemController;
+use App\Http\Controllers\KaryawanController;
+use App\Http\Controllers\KategoriController;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SubkategoriController;
+use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::get('/', function () {
-    return view('welcome');
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
+
+    return redirect()->route('register');
 });
 
-Route::resource('karyawans', KaryawanController::class);
-Route::resource('products', ProductController::class);
-Route::resource('admins', AdminController::class);
-Route::resource('kategori', KategoriController::class);
-Route::resource('subkategori', SubkategoriController::class);
-Route::resource('item', ItemController::class);
+Route::get('/dashboard', function () {
+    return Inertia::render('Dashboard');
+})->middleware(['auth'])->name('dashboard');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])
+        ->name('profile.edit');
+
+    Route::patch('/profile', [ProfileController::class, 'update'])
+        ->name('profile.update');
+
+    Route::delete('/profile', [ProfileController::class, 'destroy'])
+        ->name('profile.destroy');
+
+    Route::resource('admin', AdminController::class);
+    Route::resource('item', ItemController::class);
+    Route::resource('karyawan', KaryawanController::class);
+    Route::resource('kategori', KategoriController::class);
+    Route::resource('product', ProductController::class);
+    Route::resource('subkategori', SubkategoriController::class);
+});
+
+require __DIR__.'/auth.php';
