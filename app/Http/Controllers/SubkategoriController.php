@@ -11,27 +11,34 @@ use Inertia\Inertia;
 class SubkategoriController extends Controller
 {
     public function index(Request $request)
-    {
-        $kategori = null;
+{
+    $search = $request->input('search');
+    $kategoriId = $request->input('kategori_id');
 
-        if ($request->kategori_id) {
-            $kategori = Kategori::find($request->kategori_id);
-        }
+    $subkategori = Subkategori::query()
+        ->with('kategori')
+        ->when($kategoriId, function ($query) use ($kategoriId) {
+            $query->where('kategori_id', $kategoriId);
+        })
+        ->when($search, function ($query) use ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('nama_subkategori', 'like', '%' . $search . '%')
+                    ->orWhere('slug', 'like', '%' . $search . '%')
+                    ->orWhere('deskripsi', 'like', '%' . $search . '%');
+            });
+        })
+        ->latest()
+        ->paginate(10)
+        ->withQueryString();
 
-        $subkategori = Subkategori::with('kategori')
-            ->when($request->kategori_id, function ($query) use ($request) {
-                $query->where('kategori_id', $request->kategori_id);
-            })
-            ->latest()
-            ->paginate(10)
-            ->withQueryString();
-
-        return Inertia::render('Subkategori/Index', [
-            'subkategori' => $subkategori,
-            'kategori' => $kategori,
-            'kategori_id' => $request->kategori_id,
-        ]);
-    }
+    return Inertia::render('Subkategori/Index', [
+        'subkategori' => $subkategori,
+        'filters' => [
+            'search' => $search,
+            'kategori_id' => $kategoriId,
+        ],
+    ]);
+}
 
     public function create(Request $request)
     {

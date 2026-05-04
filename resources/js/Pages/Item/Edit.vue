@@ -1,24 +1,25 @@
 <script setup>
 import { Link, useForm } from "@inertiajs/vue3";
 
-defineProps({
+const props = defineProps({
+    item: Object,
     kategori: Array,
     subkategori: Array,
 });
 
 const form = useForm({
-    kategori_id: "",
-    subkategori_id: "",
-    nama_item: "",
-    deskripsi: "",
-    durasi_menit: 0,
-    jumlah_soal: 0,
-    harga: 0,
-    is_active: true,
+    kategori_id: props.item.kategori_id ?? "",
+    subkategori_id: props.item.subkategori_id ?? "",
+    nama_item: props.item.nama_item ?? "",
+    deskripsi: props.item.deskripsi ?? "",
+    durasi_menit: props.item.durasi_menit ?? 0,
+    jumlah_soal: props.item.jumlah_soal ?? 0,
+    harga: props.item.harga ?? 0,
+    is_active: Boolean(props.item.is_active),
 });
 
 const submit = () => {
-    form.post("/item");
+    form.put(`/item/${props.item.id}`);
 };
 </script>
 
@@ -72,6 +73,9 @@ const submit = () => {
                                 v-for="row in subkategori"
                                 :key="row.id"
                                 :value="row.id"
+                            >
+                                {{ row.nama_subkategori }}
+                            </option>
                         </select>
                     </div>
                 </div>

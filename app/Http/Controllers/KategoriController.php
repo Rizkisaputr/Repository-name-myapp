@@ -9,34 +9,48 @@ use Inertia\Inertia;
 
 class KategoriController extends Controller
 {
-    public function index()
-    {
-        $kategori = Kategori::latest()
-            ->paginate(10)
-            ->withQueryString();
+    
+    public function index(Request $request)
+{
+    $search = $request->input('search');
 
-        return Inertia::render('Kategori/Index', [
-            'kategori' => $kategori,
-        ]);
-    }
+    $kategori = Kategori::query()
+        ->when($search, function ($query) use ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('nama_kategori', 'like', '%' . $search . '%')
+                    ->orWhere('slug', 'like', '%' . $search . '%')
+                    ->orWhere('deskripsi', 'like', '%' . $search . '%');
+            });
+        })
+        ->latest()
+        ->paginate(10)
+        ->withQueryString();
+
+    return Inertia::render('Kategori/Index', [
+        'kategori' => $kategori,
+        'filters' => [
+            'search' => $search,
+        ],
+    ]);
+}
 
     public function create()
     {
         return Inertia::render('Kategori/Create');
     }
 
-public function show(Kategori $kategori)
-{
-    $kategori->load([
-        'subkategori' => function ($query) {
-            $query->latest();
-        }
-    ]);
+    public function show(Kategori $kategori)
+    {
+        $kategori->load([
+            'subkategori' => function ($query) {
+                $query->latest();
+            }
+        ]);
 
-    return Inertia::render('Kategori/Show', [
-        'kategori' => $kategori,
-    ]);
-}
+        return Inertia::render('Kategori/Show', [
+            'kategori' => $kategori,
+        ]);
+    }
 
     public function store(Request $request)
     {

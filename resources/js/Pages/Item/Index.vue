@@ -1,13 +1,60 @@
 <script setup>
-import { Link, router } from "@inertiajs/vue3";
+import { Link, router, usePage } from "@inertiajs/vue3";
+import { ref, watch } from "vue";
+import Toast from "@/Components/Toast.vue";
 
-defineProps({
+const page = usePage();
+
+const props = defineProps({
     item: Object,
     kategori: Object,
     subkategori: Object,
     kategori_id: [String, Number, null],
     subkategori_id: [String, Number, null],
+    filters: Object,
 });
+
+const search = ref(props.filters?.search ?? "");
+
+let searchTimeout = null;
+
+const getParams = (value = "") => {
+    const params = {};
+
+    if (value) {
+        params.search = value;
+    }
+
+    if (props.kategori_id) {
+        params.kategori_id = props.kategori_id;
+    }
+
+    if (props.subkategori_id) {
+        params.subkategori_id = props.subkategori_id;
+    }
+
+    return params;
+};
+
+watch(search, (value) => {
+    clearTimeout(searchTimeout);
+
+    searchTimeout = setTimeout(() => {
+        router.get("/item", getParams(value), {
+            preserveState: true,
+            replace: true,
+        });
+    }, 500);
+});
+
+const resetSearch = () => {
+    search.value = "";
+
+    router.get("/item", getParams(""), {
+        preserveState: true,
+        replace: true,
+    });
+};
 
 const hapusItem = (id) => {
     if (confirm("Yakin ingin menghapus item ini?")) {
@@ -17,6 +64,17 @@ const hapusItem = (id) => {
 </script>
 
 <template>
+    <Toast
+        v-if="page.props.flash?.success"
+        :message="page.props.flash.success"
+        type="success"
+    />
+
+    <Toast
+        v-if="page.props.flash?.error"
+        :message="page.props.flash.error"
+        type="error"
+    />
     <div class="min-h-screen bg-slate-100 p-6">
         <div class="mb-6 flex items-center justify-between">
             <div>
@@ -49,6 +107,34 @@ const hapusItem = (id) => {
         <div
             class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
         >
+            <!-- SEARCH -->
+            <div
+                class="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+            >
+                <div
+                    class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+                >
+                    <div
+                        class="flex w-full flex-col gap-2 md:w-auto md:flex-row"
+                    >
+                        <input
+                            v-model="search"
+                            type="text"
+                            placeholder="Cari item..."
+                            class="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 md:w-80"
+                        />
+
+                        <button
+                            v-if="search"
+                            type="button"
+                            @click="resetSearch"
+                            class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                        >
+                            Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
             <table class="w-full text-left">
                 <thead class="bg-slate-50">
                     <tr>
@@ -160,7 +246,11 @@ const hapusItem = (id) => {
                             colspan="8"
                             class="px-4 py-6 text-center text-slate-500"
                         >
-                            Belum ada data item.
+                            <span v-if="search">
+                                Data item dengan kata kunci "{{ search }}" tidak
+                                ditemukan.
+                            </span>
+                            <span v-else> Belum ada data item. </span>
                         </td>
                     </tr>
                 </tbody>

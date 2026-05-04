@@ -11,10 +11,11 @@ use Inertia\Inertia;
 
 class ItemController extends Controller
 {
-    public function index(Request $request)
+   public function index(Request $request)
 {
     $kategori = null;
     $subkategori = null;
+    $search = $request->input('search');
 
     if ($request->kategori_id) {
         $kategori = Kategori::find($request->kategori_id);
@@ -31,6 +32,13 @@ class ItemController extends Controller
         ->when($request->subkategori_id, function ($query) use ($request) {
             $query->where('subkategori_id', $request->subkategori_id);
         })
+        ->when($search, function ($query) use ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('nama_item', 'like', '%' . $search . '%')
+                    ->orWhere('slug', 'like', '%' . $search . '%')
+                    ->orWhere('deskripsi', 'like', '%' . $search . '%');
+            });
+        })
         ->latest()
         ->paginate(10)
         ->withQueryString();
@@ -41,6 +49,11 @@ class ItemController extends Controller
         'subkategori' => $subkategori,
         'kategori_id' => $request->kategori_id,
         'subkategori_id' => $request->subkategori_id,
+        'filters' => [
+            'search' => $search,
+            'kategori_id' => $request->kategori_id,
+            'subkategori_id' => $request->subkategori_id,
+        ],
     ]);
 }
 
@@ -81,25 +94,27 @@ class ItemController extends Controller
         ]);
     }
 
-    public function update(Request $request, Item $item)
-    {
-        $validated = $request->validate([
-            'kategori_id' => ['required', 'exists:kategori,id'],
-            'subkategori_id' => ['required', 'exists:subkategori,id'],
-            'nama_item' => ['required', 'string', 'max:255'],
-            'deskripsi' => ['nullable', 'string'],
-            'durasi_menit' => ['required', 'integer', 'min:0'],
-            'jumlah_soal' => ['required', 'integer', 'min:0'],
-            'harga' => ['required', 'numeric', 'min:0'],
-            'is_active' => ['required', 'boolean'],
-        ]);
+  public function update(Request $request, Item $item)
+{
+    $validated = $request->validate([
+        'kategori_id' => ['required', 'exists:kategori,id'],
+        'subkategori_id' => ['required', 'exists:subkategori,id'],
+        'nama_item' => ['required', 'string', 'max:255'],
+        'deskripsi' => ['nullable', 'string'],
+        'durasi_menit' => ['required', 'integer', 'min:0'],
+        'jumlah_soal' => ['required', 'integer', 'min:0'],
+        'harga' => ['required', 'numeric', 'min:0'],
+        'is_active' => ['required', 'boolean'],
+    ]);
 
-        $validated['slug'] = Str::slug($validated['nama_item']);
+    $validated['slug'] = \Illuminate\Support\Str::slug($validated['nama_item']);
 
-        $item->update($validated);
+    $item->update($validated);
 
-        return redirect('/item')->with('success', 'Item berhasil diperbarui.');
-    }
+    return redirect()
+        ->route('item.index')
+        ->with('success', 'Item berhasil diperbarui.');
+}
 
     public function destroy(Item $item)
     {
